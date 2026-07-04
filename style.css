@@ -1,0 +1,429 @@
+/* =========================================================================
+   CATCH THE BALL WITH YOUR HAND — NEON ARCADE THEME
+   -------------------------------------------------------------------------
+   Design tokens:
+   - Background:  #060a14 (near-black space navy)
+   - Surface:     #0d1526
+   - Neon Cyan:   #00f6ff   (primary accent / basket / normal UI)
+   - Neon Pink:   #ff2ea6   (secondary accent / titles)
+   - Neon Gold:   #ffd447   (golden ball / high score)
+   - Neon Red:    #ff3860   (bombs / lives / danger)
+   - Neon Green:  #39ff88   (hearts / positive feedback)
+   Fonts: Orbitron (display / HUD numerics), Rajdhani (body / labels)
+   ========================================================================= */
+
+:root{
+  --bg:        #060a14;
+  --surface:   #0d1526;
+  --cyan:      #00f6ff;
+  --pink:      #ff2ea6;
+  --gold:      #ffd447;
+  --red:       #ff3860;
+  --green:     #39ff88;
+  --text:      #e8f6ff;
+  --text-dim:  #7fa3c9;
+  --grid-line: rgba(0, 246, 255, 0.07);
+}
+
+*{ box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body{
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------------------------------------------------------------------
+   Background FX: grid, scanlines, ambient glows
+--------------------------------------------------------------------- */
+.bg-grid{
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 42px 42px;
+  transform: perspective(500px) rotateX(60deg) scale(2);
+  transform-origin: bottom;
+  opacity: 0.5;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bg-scanlines{
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.025) 0px,
+    rgba(255,255,255,0.025) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.bg-glow{
+  position: fixed;
+  width: 60vw; height: 60vw;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.16;
+  z-index: 0;
+  pointer-events: none;
+}
+.bg-glow--cyan{ top: -20%; left: -15%; background: var(--cyan); }
+.bg-glow--pink{ bottom: -20%; right: -15%; background: var(--pink); }
+
+/* ---------------------------------------------------------------------
+   App shell
+--------------------------------------------------------------------- */
+#app{
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ---------------------------------------------------------------------
+   HUD bar
+--------------------------------------------------------------------- */
+#hud{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px clamp(10px, 3vw, 28px);
+  background: linear-gradient(180deg, rgba(13,21,38,0.95), rgba(13,21,38,0.65));
+  border-bottom: 1px solid rgba(0,246,255,0.25);
+  box-shadow: 0 2px 20px rgba(0,246,255,0.08);
+  flex-wrap: wrap;
+}
+
+.hud-item{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+  min-width: 64px;
+}
+
+.hud-label{
+  font-size: clamp(9px, 1.6vw, 11px);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.hud-value{
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(16px, 3.4vw, 26px);
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: 0 0 8px rgba(0,246,255,0.7), 0 0 20px rgba(0,246,255,0.3);
+}
+
+.hud-lives .hud-value{
+  color: var(--red);
+  text-shadow: 0 0 8px rgba(255,56,96,0.7);
+  font-size: clamp(14px, 3vw, 20px);
+  letter-spacing: 2px;
+}
+
+.hud-high .hud-value{
+  color: var(--gold);
+  text-shadow: 0 0 8px rgba(255,212,71,0.7);
+}
+
+.hud-controls{
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn{
+  width: 38px; height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,246,255,0.35);
+  background: rgba(0,246,255,0.06);
+  color: var(--cyan);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s ease;
+}
+.icon-btn:hover{
+  background: rgba(0,246,255,0.18);
+  box-shadow: 0 0 14px rgba(0,246,255,0.45);
+  transform: translateY(-1px);
+}
+.icon-btn:active{ transform: translateY(0); }
+
+/* ---------------------------------------------------------------------
+   Stage (canvas area)
+--------------------------------------------------------------------- */
+#stage{
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#gameCanvas{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: radial-gradient(ellipse at 50% 0%, #0c1830 0%, #060a14 70%);
+}
+
+/* Camera preview, floating corner box */
+#camPreview{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: clamp(110px, 22vw, 180px);
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 18px rgba(0,246,255,0.45), inset 0 0 20px rgba(0,0,0,0.5);
+  background: #000;
+  z-index: 5;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#camPreview.hidden-cam{ opacity: 0; pointer-events: none; transform: scale(0.9); }
+
+#inputVideo{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* mirror for intuitive left/right */
+  opacity: 0.85;
+}
+#handOverlay{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  transform: scaleX(-1);
+}
+.cam-label{
+  position: absolute;
+  bottom: 2px; left: 0; right: 0;
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: var(--cyan);
+  background: rgba(0,0,0,0.5);
+  padding: 2px 0;
+}
+
+/* Toast (speed-up / combo messages) */
+#toast{
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translate(-50%, -10px);
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: clamp(16px, 3vw, 26px);
+  color: var(--pink);
+  text-shadow: 0 0 12px rgba(255,46,166,0.8);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 6;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  letter-spacing: 3px;
+  white-space: nowrap;
+}
+#toast.show{
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------------------------------------------------------------------
+   Overlay screens (start / pause / game over)
+--------------------------------------------------------------------- */
+.overlay-screen{
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  padding: 20px;
+  background: rgba(4,7,14,0.86);
+  backdrop-filter: blur(6px);
+}
+.overlay-screen.hidden{ display: none; }
+
+.game-title{
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: clamp(22px, 6vw, 48px);
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0,246,255,0.8), 0 0 40px rgba(0,246,255,0.4);
+  line-height: 1.3;
+  letter-spacing: 2px;
+  animation: title-pulse 2.4s ease-in-out infinite;
+}
+.game-title span{
+  display: block;
+  font-size: clamp(14px, 3.4vw, 24px);
+  color: var(--pink);
+  text-shadow: 0 0 10px rgba(255,46,166,0.8);
+  letter-spacing: 6px;
+}
+
+@keyframes title-pulse{
+  0%, 100%{ filter: brightness(1); }
+  50%{ filter: brightness(1.25); }
+}
+
+.game-sub{
+  max-width: 560px;
+  font-size: clamp(12px, 2.2vw, 16px);
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.legend{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 22px;
+  margin: 6px 0 4px;
+  font-size: clamp(11px, 2vw, 14px);
+}
+.legend-item{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.legend-dot{
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px currentColor;
+}
+.dot-normal{ background: var(--cyan); color: var(--cyan); }
+.dot-gold{ background: var(--gold); color: var(--gold); }
+.dot-bomb{ background: #222; border: 2px solid var(--red); color: var(--red); }
+.dot-heart{ background: var(--green); color: var(--green); }
+
+.cam-status{
+  font-size: 12px;
+  color: var(--text-dim);
+  min-height: 16px;
+}
+
+/* Neon buttons */
+.neon-btn{
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(13px, 2.4vw, 17px);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 14px 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 2px solid var(--cyan);
+  background: rgba(0,246,255,0.08);
+  color: var(--cyan);
+  text-shadow: 0 0 8px rgba(0,246,255,0.7);
+  box-shadow: 0 0 16px rgba(0,246,255,0.35), inset 0 0 12px rgba(0,246,255,0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.neon-btn:hover{
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 26px rgba(0,246,255,0.6), inset 0 0 16px rgba(0,246,255,0.15);
+  background: rgba(0,246,255,0.16);
+}
+.neon-btn:active{ transform: translateY(0) scale(0.98); }
+
+.neon-btn--primary{
+  border-color: var(--pink);
+  color: var(--pink);
+  text-shadow: 0 0 8px rgba(255,46,166,0.8);
+  box-shadow: 0 0 18px rgba(255,46,166,0.45), inset 0 0 12px rgba(255,46,166,0.1);
+}
+.neon-btn--primary:hover{
+  box-shadow: 0 0 30px rgba(255,46,166,0.7), inset 0 0 16px rgba(255,46,166,0.18);
+  background: rgba(255,46,166,0.14);
+}
+
+.neon-btn--ghost{
+  border-color: var(--text-dim);
+  color: var(--text-dim);
+  background: transparent;
+  box-shadow: none;
+  text-shadow: none;
+  font-size: clamp(11px, 2vw, 13px);
+  padding: 10px 22px;
+}
+.neon-btn--ghost:hover{
+  color: var(--text);
+  border-color: var(--text);
+  box-shadow: 0 0 10px rgba(255,255,255,0.15);
+}
+
+.pause-title, .over-title{
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: clamp(26px, 6vw, 44px);
+  letter-spacing: 4px;
+}
+.pause-title{ color: var(--cyan); text-shadow: 0 0 14px rgba(0,246,255,0.7); }
+.over-title{ color: var(--red); text-shadow: 0 0 14px rgba(255,56,96,0.7); }
+
+.over-score{
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(16px, 3vw, 22px);
+  color: var(--text);
+}
+.over-high{
+  font-size: clamp(13px, 2.4vw, 16px);
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255,212,71,0.7);
+  min-height: 20px;
+}
+.over-high.hidden{ visibility: hidden; }
+
+/* ---------------------------------------------------------------------
+   Footer
+--------------------------------------------------------------------- */
+#footerBar{
+  padding: 6px 14px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-dim);
+  background: rgba(13,21,38,0.9);
+  border-top: 1px solid rgba(0,246,255,0.12);
+}
+
+/* ---------------------------------------------------------------------
+   Utility
+--------------------------------------------------------------------- */
+.hidden{ display: none !important; }
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce){
+  .game-title{ animation: none; }
+  .neon-btn, .icon-btn{ transition: none; }
+}
+
+/* Small screens: shrink HUD & hide footer tip */
+@media (max-width: 480px){
+  #footerBar{ display: none; }
+  .hud-item{ min-width: 52px; }
+}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Catch the Ball with Your Hand — Neon Arcade</title>
+
+<!-- Google Fonts: Orbitron (display / neon headings) + Rajdhani (body / HUD) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============ BACKGROUND FX LAYERS ============ -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-scanlines" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--cyan" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--pink" aria-hidden="true"></div>
+
+  <!-- ============ MAIN APP CONTAINER ============ -->
+  <div id="app">
+
+    <!-- ---------- Top HUD bar ---------- -->
+    <header id="hud">
+      <div class="hud-item hud-score">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="scoreValue">0</span>
+      </div>
+
+      <div class="hud-item hud-lives">
+        <span class="hud-label">Lives</span>
+        <span class="hud-value" id="livesValue">❤️❤️❤️</span>
+      </div>
+
+      <div class="hud-item hud-high">
+        <span class="hud-label">High Score</span>
+        <span class="hud-value" id="highScoreValue">0</span>
+      </div>
+
+      <div class="hud-controls">
+        <button id="pauseBtn" class="icon-btn" title="Pause / Resume" aria-label="Pause or Resume">⏸</button>
+        <button id="restartBtn" class="icon-btn" title="Restart" aria-label="Restart">⟳</button>
+        <button id="muteBtn" class="icon-btn" title="Mute / Unmute" aria-label="Mute or Unmute">🔊</button>
+        <button id="camToggleBtn" class="icon-btn" title="Toggle Camera Preview" aria-label="Toggle Camera Preview">🎥</button>
+      </div>
+    </header>
+
+    <!-- ---------- Game stage: canvas + camera preview ---------- -->
+    <main id="stage">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- Small floating camera preview so the player can see their hand -->
+      <div id="camPreview">
+        <video id="inputVideo" playsinline autoplay muted></video>
+        <canvas id="handOverlay"></canvas>
+        <div class="cam-label">HAND CAM</div>
+      </div>
+
+      <!-- Difficulty / combo toast (e.g. "SPEED UP!") -->
+      <div id="toast"></div>
+
+      <!-- ---------- START SCREEN ---------- -->
+      <section id="startScreen" class="overlay-screen">
+        <h1 class="game-title">CATCH THE BALL<span>WITH YOUR HAND</span></h1>
+        <p class="game-sub">Move your open hand left &amp; right in front of the webcam to slide the basket.<br/>
+          Catch falling orbs, grab gold for bonus points, dodge bombs, and scoop up hearts to survive.</p>
+
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot dot-normal"></span> Normal Ball · +10</div>
+          <div class="legend-item"><span class="legend-dot dot-gold"></span> Golden Ball · +50</div>
+          <div class="legend-item"><span class="legend-dot dot-bomb"></span> Bomb · -1 Life</div>
+          <div class="legend-item"><span class="legend-dot dot-heart"></span> Heart · +1 Life</div>
+        </div>
+
+        <button id="startBtn" class="neon-btn neon-btn--primary">▶ START GAME</button>
+        <button id="skipCamBtn" class="neon-btn neon-btn--ghost">Play with Mouse / Keyboard Instead</button>
+
+        <p id="camStatus" class="cam-status">Waiting for camera permission…</p>
+      </section>
+
+      <!-- ---------- PAUSE SCREEN ---------- -->
+      <section id="pauseScreen" class="overlay-screen hidden">
+        <h2 class="pause-title">PAUSED</h2>
+        <button id="resumeBtn" class="neon-btn neon-btn--primary">▶ RESUME</button>
+        <button id="restartFromPauseBtn" class="neon-btn neon-btn--ghost">⟳ RESTART</button>
+      </section>
+
+      <!-- ---------- GAME OVER SCREEN ---------- -->
+      <section id="gameOverScreen" class="overlay-screen hidden">
+        <h2 class="over-title">GAME OVER</h2>
+        <p class="over-score">Score: <span id="finalScore">0</span></p>
+        <p class="over-high" id="newHighBadge">🏆 New High Score!</p>
+        <button id="playAgainBtn" class="neon-btn neon-btn--primary">▶ PLAY AGAIN</button>
+      </section>
+    </main>
+
+    <footer id="footerBar">
+      <span>Tip: no webcam? Use ← → arrow keys or move your mouse.</span>
+    </footer>
+  </div>
+
+  <!-- ============ MediaPipe Hands (CDN) ============ -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
